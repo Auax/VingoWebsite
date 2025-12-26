@@ -1,0 +1,143 @@
+// components/SimplexNoiseBackground.tsx
+
+import React, { useRef, useEffect } from 'react';
+import { createNoise3D } from 'simplex-noise';
+
+// Helper to parse hex colors
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+        ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+        }
+        : null;
+}
+
+interface SimplexNoiseProps {
+    className?: string;
+    colorA?: string;
+    colorB?: string;
+    /** The size of the low-res buffer. Smaller is faster/blurrier. Default: 128 */
+    resolution?: number;
+    /** Noise "zoom". Smaller = larger clouds. Default: 0.01 */
+    scale?: number;
+    /** Animation speed. Default: 0.0012 */
+    speed?: number;
+}
+
+const SimplexNoiseBackground: React.FC<SimplexNoiseProps> = ({
+                                                                 className,
+                                                                 colorA = '#000000',
+                                                                 colorB = '#222222',
+                                                                 resolution = 128,
+                                                                 scale = 0.01,
+                                                                 speed = 0.0012,
+                                                             }) => {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
+    const noise3D = createNoise3D();
+
+    // Offscreen canvas for performance
+    const offscreenCanvas = useRef<HTMLCanvasElement | null>(null);
+    const offscreenCtx = useRef<CanvasRenderingContext2D | null>(null);
+
+    useEffect(() => {
+        const mainCanvas = canvasRef.current;
+        if (!mainCanvas) return;
+
+        const mainCtx = mainCanvas.getContext('2d');
+        if (!mainCtx) return;
+
+        // Parse colors
+        const rgbA = hexToRgb(colorA);
+        const rgbB = hexToRgb(colorB);
+
+        if (!rgbA || !rgbB) {
+            console.error('Invalid color prop passed to SimplexNoiseBackground');
+            return;
+        }
+
+        // Initialize or update offscreen canvas resolution
+        if (!offscreenCanvas.current) {
+            offscreenCanvas.current = document.createElement('canvas');
+        }
+        offscreenCanvas.current.width = resolution;
+        offscreenCanvas.current.height = resolution;
+        offscreenCtx.current = offscreenCanvas.current.getContext('2d', {
+            willReadFrequently: true,
+        });
+
+        const oCtx = offscreenCtx.current;
+        if (!oCtx) return;
+
+        let time = 0;
+
+        const drawNoise = () => {
+            const imageData = oCtx.createImageData(resolution, resolution);
+            const data = imageData.data;
+
+            for (let y = 0; y < resolution; y++) {
+                for (let x = 0; x < resolution; x++) {
+                    // Use the prop-driven scale and time
+                    const value = noise3D(x * scale, y * scale, time);
+
+                    // Normalize to 0-1 range
+                    const t = (value + 1) * 0.5;
+
+                    // Lerp (linear interpolation) between the two colors
+                    const r = rgbA.r + (rgbB.r - rgbA.r) * t;
+                    const g = rgbA.g + (rgbB.g - rgbA.g) * t;
+                    const b = rgbA.b + (rgbB.b - rgbA.b) * t;
+
+                    const i = (y * resolution + x) * 4;
+                    data[i] = r;
+                    data[i + 1] = g;
+                    data[i + 2] = b;
+                    data[i + 3] = 255;
+                }
+            }
+
+            // 1. Draw noise to small offscreen canvas
+            oCtx.putImageData(imageData, 0, 0);
+
+            // 2. Scale up to fill main canvas (creates soft/blurry effect)
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            mainCtx.drawImage(
+                offscreenCanvas.current!,
+                0,
+                0,
+                mainCanvas.width,
+                mainCanvas.height
+            );
+
+            // Use the prop-driven speed
+            time += speed;
+            animationFrameRef.current = requestAnimationFrame(drawNoise);
+        };
+
+        // Use ResizeObserver to fit container
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (!entries[0]) return;
+            const { width, height } = entries[0].contentRect;
+            mainCanvas.width = width;
+            mainCanvas.height = height;
+        });
+
+        resizeObserver.observe(mainCanvas);
+        animationFrameRef.current = requestAnimationFrame(drawNoise);
+
+        // Cleanup
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+            resizeObserver.disconnect();
+        };
+    }, [colorA, colorB, resolution, scale, speed, noise3D]); // Re-run effect if props change
+
+    return <canvas ref={canvasRef} className={className} />;
+};
+
+export default SimplexNoiseBackground;

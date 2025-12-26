@@ -1,0 +1,89 @@
+"use client";
+
+import React, { useRef, useState } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+interface TextRotatorProps {
+    words: string[];
+}
+
+export default function TextRotator({ words }: TextRotatorProps) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    // We now ref the container, not the text, so we can select children
+    const containerRef = useRef<HTMLSpanElement>(null);
+
+    // Split the current word into individual characters
+    const currentWord = words[currentIndex];
+    const characters = currentWord.split("");
+
+    useGSAP(() => {
+        const tl = gsap.timeline();
+
+        // 1. Animate IN (Staggered)
+        tl.fromTo(
+            ".letter", // Target class added to the chars below
+            {
+                y: 20, // Use pixels for consistent movement regardless of character height
+                opacity: 0,
+                filter: "blur(8px)"
+            },
+            {
+                y: 0,
+                opacity: 1,
+                filter: "blur(0px)",
+                duration: 0.4,
+                stagger: 0.05, // 0.05s delay between each letter
+                ease: "power2.out",
+            }
+        )
+            // 2. Stay visible (Delay)
+            .to(".letter", {
+                y: 0,
+                duration: 1.5,
+            })
+            // 3. Animate OUT (Staggered)
+            .to(".letter", {
+                y: -20,
+                opacity: 0,
+                filter: "blur(8px)",
+                duration: 0.4,
+                stagger: 0.05,
+                ease: "power2.in",
+                onComplete: () => {
+                    setCurrentIndex((prev) => (prev + 1) % words.length);
+                },
+            });
+
+    }, { scope: containerRef, dependencies: [currentIndex, words] });
+
+    return (
+        <span
+            ref={containerRef}
+            className="inline-flex relative overflow-hidden text-left py-2 px-1"
+            // Accessibility: Screen readers see the full word, not the split spans
+            aria-label={currentWord}
+        >
+      {/* Hide the visual split text from screen readers */}
+            <span aria-hidden="true" className="block">
+        {characters.map((char, index) => (
+            <span
+                key={index}
+                className="letter inline-block align-middle will-change-transform inline-block text-transparent bg-clip-text bg-gradient-to-t from-white to-amber-400 "
+                style={{
+                    // Fix for spaces: they collapse to 0 width if not handled
+                    whiteSpace: "pre"
+                }}
+            >
+            {char}
+          </span>
+        ))}
+      </span>
+            {/* This hidden span reserves the width of the word so the layout
+         doesn't collapse while the letters are animating/absolute.
+         (Optional stability improvement)
+      */}
+            <span className="invisible h-0 w-0 overflow-hidden">{currentWord}</span>
+    </span>
+    );
+}

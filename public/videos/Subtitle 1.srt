@@ -1,0 +1,20 @@
+1
+01:00:11,607 --> 01:00:12,650
+<b><font color='#ffff00'>That I cannot do.</font>
+Eso no lo puedo hacer.</b>
+
+2
+01:00:14,736 --> 01:00:16,612
+<b><font color='#ffff00'>I'll give you anything you ask.</font></b>
+<b>Te daré todo lo que me pidas.</b>
+
+3
+01:00:19,490 --> 01:00:20,908
+<b><font color='#ffff00'>We've known each other many years</font></b>
+<b>Nos conocemos desde hace muchos años</b>
+
+4
+01:00:20,908 --> 01:00:24,203
+<b><font color='#ffff00'>But this is the first time you ever came to me for counsel, for help.</font></b>
+<b>Pero esta es la primera vez que acudes a mí en busca de consejo y ayuda.</b>
+

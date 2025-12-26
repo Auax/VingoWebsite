@@ -1,0 +1,40 @@
+import React from 'react';
+import AnimatedNoiseBackground from "@/app/components/animated_canvas/PerlinNoiseWaves";
+import AnimatedGrainBackground from "@/app/components/animated_canvas/AnimatedGrainBackground";
+import Link from "next/link";
+
+const WaveCard = (props: {
+    title: string;
+    year: string;
+    description: string;
+    buttonText: string;
+    link: string;
+
+    className?: string;
+    colorA?: string;
+    colorB?: string;
+    contentColor: string;
+    hrColor: string;
+    buttonBgColor: string;
+    buttonTextColor: string;
+
+}) => {
+    return (
+        <div className={`p-8 rounded-3xl flex flex-col relative overflow-hidden ${props.className}`}>
+            <div className="flex flex-col relative z-10">
+                <h2 className={`text-${props.contentColor} font-bold text-2xl`}>{props.title}</h2>
+                <span className={`text-${props.contentColor} text-md`}>{props.year}</span>
+                <hr className={`border-${props.hrColor} mt-2`}/>
+                <p className={`text-${props.contentColor} text-md mt-3`}>{props.description}</p>
+                <Link href={props.link} target="_blank"
+                   className={`text-${props.buttonTextColor} bg-${props.buttonBgColor} font-bold px-6 py-2 self-start rounded-lg mt-6`}>{props.buttonText}</Link>
+            </div>
+            <AnimatedGrainBackground intensity={30}/>
+            <AnimatedNoiseBackground resolution={128} scale={.015} speed={0.0012} colorA={props.colorA}
+                                     colorB={props.colorB} className="absolute top-0 left-0 w-full h-full z-0 "/>
+
+        </div>
+    );
+};
+
+export default WaveCard;
